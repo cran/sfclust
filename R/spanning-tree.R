@@ -11,9 +11,12 @@
 #
 # Note: These functions are used with acknowledgment to the original authors.
 
+#' @importFrom igraph as_edgelist ecount delete_edges components V E head_of tail_of mst
+NULL
+
 # function to get whether an edge is within a cluster or bewteen two clusters
 getEdgeStatus <- function(membership, graph) {
-  inc_mat <- get.edgelist(graph, names = F)
+  inc_mat <- as_edgelist(graph, names = FALSE)
   membership_head <- membership[inc_mat[, 1]]
   membership_tail <- membership[inc_mat[, 2]]
   edge_status <- rep("w", ecount(graph))
@@ -28,7 +31,7 @@ splitCluster <- function(mstgraph, k, membership) {
   edge_cutted <- sample.int(tcluster[clust.split] - 1, 1)
 
   mst_subgraph <- igraph::induced_subgraph(mstgraph, membership == clust.split)
-  mst_subgraph <- delete.edges(mst_subgraph, edge_cutted)
+  mst_subgraph <- delete_edges(mst_subgraph, edge_cutted)
   connect_comp <- components(mst_subgraph)
   cluster_new <- connect_comp$membership
   vid_new <- (V(mst_subgraph)$vid)[cluster_new == 2] # vid for vertices belonging to new cluster

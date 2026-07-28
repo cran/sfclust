@@ -1,33 +1,37 @@
 ---
-title: "Getting started"
-date: "`r Sys.Date()`"
+title: "Introduction to sfclust"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Getting started}
+  %\VignetteIndexEntry{Introduction to sfclust}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(fig.align = "center", eval = TRUE)
-knitr::opts_chunk$set(fig.height = 7, fig.width = 8, dpi = 90, out.width = '100%')
+knitr::opts_chunk$set(fig.align = "center")
+knitr::opts_chunk$set(fig.height = 6.5, fig.width = 7.5, dpi = 90, out.width = '100%')
 knitr::opts_chunk$set(comment = "#>")
 ```
 
-In this vignette, we demonstrate the basic use of `sfclust` for spatial clustering.
+```{r include = FALSE}
+path_figures <- here::here(file.path("tools", "figures"))
+save_figures <- dir.exists(path_figures)
+save_figures <- FALSE
+```
+
+In this vignette, we demonstrate the basic use of `sfclust` for spatial functional clustering.
 Specifically, we focus on a synthetic dataset of disease cases to identify regions with
 similar disease risk over time.
 
 ## Packages
 
 We begin by loading the required packages. In particular, we load the `stars` package as
-our `sfclust` package works with spacio-temporal `stars` objects.
+our `sfclust` package works with spatio-temporal `stars` objects.
 
-```{r warning=FALSE, include=TRUE}
+```{r, warning = FALSE, message = FALSE}
 library(sfclust)
 library(stars)
 library(ggplot2)
-library(dplyr)
 ```
 
 ## Data
@@ -38,11 +42,11 @@ a `stars` object with two variables, `cases` and `population`, and two dimension
 daily over 91 days, starting in January 2024.
 
 ```{r}
-data("stbinom")
+stbinom
 ```
 
 We can easily visualize the spatio-temporal risk using `ggplot` and `stars::geom_stars`.
-It shows some neightboring regions with similar risk patterns over time.
+It shows some neighboring regions with similar risk patterns over time.
 
 ```{r, fig.height = 9.5}
 ggplot() +
@@ -54,37 +58,53 @@ ggplot() +
     theme(legend.position = "bottom")
 ```
 
-<!-- We can aggregate the data for easier visualization using the `stars::aggregate` function. -->
-<!-- The following figure displays the weekly mean risk, providing initial insights. For -->
-This figure displays the daily risk, providing initial insights. For
+We can aggregate the data for easier visualization using the `stars::aggregate` function.
+The following figure displays the weekly mean risk, providing initial insights. For
 example, the northwestern regions show a higher risk at the beginning (2024-01-01),
-followed by a decline by March 24. In contrast, a group of regions on the eastern side
-exhibits high risk at both the beginning (2024-01-01) and the end (2024-03-25) but lower
-values in the middle of the study period (2024-02-12).
+followed by a decline by the end of the study period (2024-03-25). In contrast, a group
+of regions on the eastern side exhibits high risk at both the beginning (2024-01-01) and
+the end (2024-03-25) but lower values in the middle of the study period (2024-02-12).
 
-```{r, eval = FALSE, echo = FALSE}
+```{r, fig.height = 3.5}
 stweekly <- aggregate(stbinom, by = "week", FUN = mean)
 ggplot() +
   geom_stars(aes(fill = cases/population), stweekly) +
-  facet_wrap(~ time) +
+  facet_wrap(~ time, nrow = 2) +
   scale_fill_distiller(palette = "RdBu") +
-  labs(title = "Weekly mean risk", fill = "Risk") +
-  theme_bw()
+  theme_bw(base_size = 10) +
+  theme(legend.position = c(0.93, 0.22))
+```
+
+```{r, echo = FALSE}
+if (save_figures) {
+  ggsave(file.path(path_figures, "stbinom-weekly-risk.pdf"),
+         width = 10, height = 3.5, device = cairo_pdf)
+}
 ```
 
 It is also useful to examine trends for each region. This can be done by converting the
-`stars` object into a data frame using the `stars::as_tibble` function. The visualization
+`stars` object into a data frame using the `as.data.frame` function. The visualization
 reveals that some regions exhibit very similar trends over time. Our goal is to cluster
 these regions while considering spatial contiguity.
 
 ```{r}
 stbinom |>
   st_set_dimensions("geometry", values = 1:nrow(stbinom)) |>
-  as_tibble() |>
+  as.data.frame() |>
   ggplot() +
     geom_line(aes(time, cases/population, group = geometry), linewidth = 0.3) +
     theme_bw() +
     labs(title = "Risk per region", y = "Risk", x = "Time")
+```
+
+Our methods convert the `stars` object into a `data.frame` with custom unique identifiers
+for the locations and functional dimensions using the `data_all`. In the following chunk
+you can see the converted data frame containing, in addition to the original data, a
+unique identifier for each observation (`id`), a spatial identifier (`ids`), and a temporal
+identifier (`id_time`).
+
+```{r}
+head(data_all(stbinom))
 ```
 
 ## Clustering
@@ -97,7 +117,7 @@ this example, given the clustering or partition \(M\), we assume that the observ
 of cases (\(y_{it}\)) for region \(i\) at time \(t\) is a realization of a Binomial random
 variable \(Y_{it}\) with size \(N_{it}\) and success probability \(p_{it}\):
 $$
-Y_{it} \mid p_{it}, N_{it}, M \stackrel{ind}{\sim} \text{Binomial}(p_{it},N_{it}).
+Y_{it} \mid p_{it}, N_{it}, M \stackrel{ind}{\sim} \text{Binomial}(N_{it}, p_{it}).
 $$
 
 Based on our exploratory analysis, the success probability \(p_{it}\) is modeled as:
@@ -126,48 +146,28 @@ regression coefficients \(\boldsymbol{\beta}_{c_i}\), and random-effect standard
 In order to perform Bayesian spatial functional clustering with the model above we use the
 main function `sfclust`. The main arguments of this function are:
 
-- `stdata`: The spatio-temporal data which should be a `stars` object.
-- `stnames`: Names of the spatial and time dimensions respectively (default:
-`c("geometry", "time")`).
+- `x`: The spatio-temporal data which should be a `stars` object.
+- `nclust`: The initial number of clusters.
+- `spnames`: Names of the spatial dimensions (auto-detected if not provided; typically
+  `"geometry"` for vector data, or `c("x", "y")` for raster data).
+- `fnames`: Names of the functional dimensions. This is a parameter of the `data.frame`
+  interface only; for the `stars` interface it is derived automatically as all dimensions
+  other than `spnames` (e.g. `"time"`) and is not user-settable.
 - `niter`: Number of iteration for the  Markov chain Monte Carlo algorithm.
 
 Notice that given that `sfclust` uses MCMC and INLA to perform Bayesian inference, it
 accepts any argument of the `INLA::inla` function. Some main arguments are:
 
 - `formula`: expression to define the model with fixed and random effects. `sfclust`
-  pre-process the data and create identifiers for regions `ids`, times `idt` and
-  space-time `id`. You can incluse these identifiers in your formula.
+  pre-processes the data and creates identifiers for regions `ids`, functional indices
+  `id_<dimname>` (e.g. `id_time`) and space-time `id`. You can include these
+  identifiers in your formula.
 - `family`: distribution of the response variable.
 - `Ntrials`: Number of trials in case of a Binomial response.
 - `E`: Expected number of cases for a Poisson response.
 
-The following code perform the Bayesian function clustering for the model explained above
-with 2000 iterations.
-
-```{r, eval = FALSE, echo = FALSE}
-# set.seed(7)
-# system.time(
-#   sfclust(stbinom, formula = cases ~ poly(time, 2) + f(id),
-#     family = "binomial", Ntrials = population,
-#     niter = 2000, path_save = file.path("inst", "vigdata", "full-binomial-mcmc.rds")
-#   )
-# )
-# #      user    system   elapsed
-# # 10819.833  1417.088  1644.396
-```
-
-```{r, eval = FALSE, echo = FALSE}
-# # Reduce size of object
-# result <- readRDS(file.path("inst", "vigdata", "full-binomial-mcmc.rds"))
-# pseudo_inla <- function(x) {
-#   list(
-#     summary.random = list(id = x$summary.random$id["mean"]),
-#     summary.linear.predictor = x$summary.linear.predictor["mean"]
-#   )
-# }
-# result$clust$models <- lapply(result$clust$models, pseudo_inla)
-# saveRDS(result, file.path("inst", "vigdata", "binomial-mcmc.rds"))
-```
+The following code performs the Bayesian functional clustering for the model explained
+above with 2000 iterations.
 
 ```{r, eval = FALSE}
 set.seed(7)
@@ -181,11 +181,11 @@ result <- readRDS(system.file("vigdata", "binomial-mcmc.rds", package = "sfclust
 names(result)
 ```
 
-The returning object is of class `sfclust`, which is a list of two elements:
+The returned object is of class `sfclust`, which is a list of two elements:
 
 - `samples`: list containing the `membership` samples, the logarithm of the marginal
   likelihood `log_mlike` and the clustering movements `move_counts` done in total.
-- `clust`: list containing the selecting `membership` from `samples`. This include the
+- `clust`: list containing the selected `membership` from `samples`. This includes the
   `id` of selected sample, the selected `membership` and the `models` associated to each
   cluster.
 
@@ -194,7 +194,7 @@ The returning object is of class `sfclust`, which is a list of two elements:
 ### Print
 
 By default, the `sfclust` object prints the within-cluster model, the clustering
-hyperparameters, the movements counts, and the current log marginal likelihood.
+hyperparameters, the movement counts, and the current log marginal likelihood.
 
 ```{r}
 result
@@ -204,9 +204,9 @@ The output indicates that the within-cluster model is specified using the formul
 poly(time, 2) + f(id)`, which is compatible with INLA. This formula includes polynomial
 fixed effects and an independent random effect per observation.
 
-The displayed hyperparameters are used in the clustering algorithm. The parameter `q =
-0.5` defines the prior for the number of clusters, while the other parameters control the
-probabilities of different clustering movements:
+The displayed hyperparameters are used in the clustering algorithm. The hyperparameter
+`log(1-q) = -0.693` penalizes the increase of clusters, while the other parameters control
+the probabilities of different clustering movements:
 
 - The probability of splitting a cluster is 0.425.
 - The probability of merging two clusters is 0.425.
@@ -216,13 +216,13 @@ probabilities of different clustering movements:
 Users can modify these hyperparameters as needed. The output also displays clustering
 movements. The output summary indicates the following:
 
-- Clusters were splited 60 times.
-- Clusters were merged 60 times.
-- Clusters were simultaneously split and merged 17 times.
-- The minimum spanning tree was updated 90 times.
+- Clusters were split 58 times.
+- Clusters were merged 58 times.
+- Clusters were simultaneously split and merged 21 times.
+- The minimum spanning tree was updated 98 times.
 
 Finally, the log marginal likelihood for the last iteration (2000) is reported as
--61,286.28.
+-61,286.27.
 
 ### Plot
 
@@ -230,7 +230,7 @@ The `plot` method generates three main graphs:
 
 1. A map of the regions colored by clusters.
 2. The mean function per cluster.
-3. The marginal likelihood for each iteration.
+3. The log marginal likelihood for each iteration.
 
 In our example, the left panel displays the regions grouped into the 10 clusters found in
 the 2000th (final) iteration. The middle panel shows the mean linear predictor curves for
@@ -238,12 +238,19 @@ each cluster. Some clusters exhibit linear trends, while others follow quadratic
 Although some clusters have similar mean trends, they are classified separately due to
 differences in other parameters, such as the variance of the random effects.
 
-Finally, the right panel presents the marginal likelihood for each iteration. The values
+Finally, the right panel presents the log marginal likelihood for each iteration. The values
 stabilize around iteration 1500, indicating that any clustering beyond this point can be
 considered a reasonable realization of the clustering distribution.
 
-```{r, fig.height = 5}
-plot(result)
+```{r, fig.height = 3}
+plot(result, sort = TRUE, legend = TRUE)
+```
+
+```{r, echo = FALSE}
+if (save_figures) {
+  ggsave(file.path(path_figures, "stbinom-plot.pdf"), width = 10, height = 3.5,
+    device = cairo_pdf)
+}
 ```
 
 ### Summary
@@ -255,15 +262,15 @@ the model formula, similar to the `print` method.
 
 Additionally, the summary provides the number of members in each cluster. For example, in
 this case, Cluster 1 has 27 members, Cluster 2 has 12 members, and so on. Finally, it
-reports the associated log-marginal likelihood.
+reports the associated log marginal likelihood.
 
 ```{r}
 summary(result)
 ```
 
-We can also summarize any other sample, such as the 500th iteration. The output clearly
-indicates that the log-marginal likelihood is much smaller in this case. Keep in mind that
-all other `sfclust` methods use the last sample by default, but you can specify a
+We can also summarize any other sample, such as an earlier iteration. The output clearly
+indicates that the log marginal likelihood is typically smaller in earlier samples. Keep in
+mind that all other `sfclust` methods use the last sample by default, but you can specify a
 different sample if needed.
 
 ```{r}
@@ -287,6 +294,7 @@ standard deviation, quantiles, and other summary statistics.
 
 ```{r}
 pred <- fitted(result)
+pred
 ```
 
 We can easily visualize these fitted values. Note that there are still differences between
@@ -295,7 +303,7 @@ level.
 
 ```{r, fig.height = 9.5}
 ggplot() +
-    geom_stars(aes(fill = mean), data = pred) +
+    geom_stars(aes(fill = mean_inv), data = pred) +
     facet_wrap(~ time) +
     scale_fill_distiller(palette = "RdBu") +
     labs(title = "Daily risk", fill = "Risk") +
@@ -308,32 +316,43 @@ To gain further insights, we can compute the mean fitted values per cluster usin
 
 ```{r}
 pred <- fitted(result, sort = TRUE, aggregate = TRUE)
+pred
 ```
 
 Using these estimates, we can visualize the cluster-level mean risk evolution over time.
 
-```{r, fig.height = 9.5}
+```{r, fig.height = 3.5}
+predweekly <- aggregate(pred, by = "week", FUN = mean)
 ggplot() +
-    geom_stars(aes(fill = mean), data = pred) +
-    facet_wrap(~ time) +
-    scale_fill_distiller(palette = "RdBu") +
-    labs(title = "Daily risk", fill = "Risk") +
-    theme_bw(base_size = 7) +
-    theme(legend.position = "bottom")
+  geom_stars(aes(fill = mean_cluster_inv), data = predweekly) +
+  facet_wrap(~ time, nrow = 2) +
+  scale_fill_distiller(palette = "RdBu") +
+  labs(fill = "Risk") +
+  theme_bw(base_size = 10) +
+  theme(legend.position = "bottom")
 ```
 
-Finally, we can use our results to visualize the original data grouped by clusters.
+```{r, echo = FALSE}
+if (save_figures) {
+  ggsave(file.path(path_figures, "stbinom-weekly-risk-per-cluster.pdf"),
+         width = 10, height = 3.5, device = cairo_pdf)
+}
+```
 
-```{r, fig.height = 9.5}
-stbinom$cluster <- fitted(result, sort = TRUE)$cluster
-stbinom |>
-  st_set_dimensions("geometry", values = 1:nrow(stbinom)) |>
-  as_tibble() |>
-  ggplot() +
-    geom_line(aes(time, cases/population, group = geometry), linewidth = 0.3) +
-    facet_wrap(~ cluster, ncol = 2) +
-    theme_bw() +
-    labs(title = "Risk per cluster", y = "Risk", x = "Time")
+Finally, we can use our clustering results to visualize the original data grouped by
+clusters using the function `plot_clusters_series()`. As the output is a `ggplot` object,
+then we can easily customize the output as follows:
+
+```{r, fig.height = 3.5}
+plot_clusters_series(result, cases/population, sort = TRUE) +
+  facet_wrap(~ cluster, ncol = 5)
+```
+
+```{r, echo = FALSE}
+if (save_figures) {
+  ggsave(file.path(path_figures, "stbinom-risk-per-cluster.pdf"),
+    width = 10, height = 4, device = cairo_pdf)
+}
 ```
 
 Even though some clusters exhibit similar trends—for example, clusters 2 and 6—the

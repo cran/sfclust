@@ -1,6 +1,8 @@
 <!-- badges: start -->
-  [![R-CMD-check](https://github.com/ErickChacon/sfclust/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ErickChacon/sfclust/actions/workflows/R-CMD-check.yaml)
- <!-- badges: end -->
+[![CRAN status](https://www.r-pkg.org/badges/version/sfclust)](https://CRAN.R-project.org/package=sfclust)
+[![R-CMD-check](https://github.com/ErickChacon/sfclust/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ErickChacon/sfclust/actions/workflows/R-CMD-check.yaml)
+[![pkgdown](https://github.com/ErickChacon/sfclust/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/ErickChacon/sfclust/actions/workflows/pkgdown.yaml)
+<!-- badges: end -->
 
 # sfclust: Bayesian Spatial Functional Clustering
 
@@ -12,14 +14,14 @@ adjacency constraints, ensuring that clusters consist of neighboring regions wit
 similar temporal dynamics.
 
 The package implements the methodology described in *"Bayesian Spatial Functional
-Data Clustering: Applications in Disease Surveillance"*, available at
-[arXiv:2407.12633](https://arxiv.org/abs/2407.12633). In addition to the core
+Data Clustering: Applications in Disease Surveillance"* (2026), published in Statistics
+in Medicine at <https://doi.org/10.1002/sim.70597>. In addition to the core
 clustering algorithm, `sfclust` offers tools for model diagnostics, visualization,
 and result summarization.
 
 ## Installation
 
-`sfclust` relies on the [`INLA`](https://www.r-inla.org/download-install) package for
+`sfclust` relies on the [`INLA`](https://www.r-inla.org/download/) package for
 efficient Bayesian inference. Install it with:
 
 ```r
@@ -28,8 +30,14 @@ install.packages("INLA", dependencies = TRUE,
 )
 ```
 
-Once `INLA` is installed, you can install the development version of `sfclust` from
-GitHub:
+Once `INLA` is installed, you can install `sfclust` from
+[CRAN](https://CRAN.R-project.org/package=sfclust) with:
+
+```r
+install.packages("sfclust")
+```
+
+Or you can install the development version from GitHub:
 
 ```r
 devtools::install_github("ErickChacon/sfclust")

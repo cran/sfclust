@@ -7,13 +7,22 @@
 \description{
 The \code{sfclust} package implements the clustering algorithm proposed in \emph{"Bayesian
 Spatial Functional Data Clustering: Applications in Disease Surveillance"}, available
-at \url{https://arxiv.org/abs/2407.12633}. The package provides tools for performing
+at \doi{10.1002/sim.70597}. The package provides tools for performing
 Bayesian spatial functional clustering, as well as methods for diagnostic analysis,
 visualization, and summarization of results.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://erickchacon.github.io/sfclust/}
+  \item \url{https://github.com/ErickChacon/sfclust}
+  \item Report bugs at \url{https://github.com/ErickChacon/sfclust/issues}
+}
+
+}
 \author{
 Ruiman Zhong \email{ruiman.zhong@kaust.edu.sa},
-Erick A. Chacón-Montalván \email{erick.chaconmontalvan@kaust.edu.sa},
+Erick A. Chacón-Montalván \email{erick.chaconmontalvan@wur.nl},
 Paula Moraga \email{paula.moraga@kaust.edu.sa}
 }
 \keyword{internal}

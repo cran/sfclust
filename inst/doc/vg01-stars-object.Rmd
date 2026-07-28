@@ -1,16 +1,15 @@
 ---
-title: "Create stars dataset"
-date: "`r Sys.Date()`"
+title: "Create a stars dataset"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Create stars dataset}
+  %\VignetteIndexEntry{Create a stars dataset}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(fig.align = "center", eval = TRUE)
-knitr::opts_chunk$set(fig.height = 7, fig.width = 8, dpi = 150, out.width = '100%')
+knitr::opts_chunk$set(fig.height = 6.5, fig.width = 7.5, dpi = 90, out.width = '100%')
 knitr::opts_chunk$set(comment = "#>")
 ```
 
@@ -18,7 +17,7 @@ Our package `sfclust` is designed to work with spatio-temporal data structured a
 `stars` object. In this vignette, we demonstrate how to create and manipulate a basic
 `stars` object.
 
-```{r warning=FALSE, include=TRUE}
+```{r, warning = FALSE, message = FALSE}
 library(stars)
 library(ggplot2)
 ```
@@ -48,8 +47,9 @@ precipitation <- matrix(rnorm(30), nrow = 6, ncol = 5)
 ## Creating a `stars` object
 
 We now use the simulated data to construct a `stars` object. This object will contain
-spatial, temporal, and variable dimensions. While there are several ways to build such
-objects, the following method is commonly used:
+spatial and temporal dimensions, along with the three simulated variables stored as
+attributes. While there are several ways to build such objects, the following method is
+commonly used:
 
 ```{r}
 stdata <- st_as_stars(
@@ -65,17 +65,17 @@ Once the `stars` object is created, you can use any of the methods provided by t
 [`stars`](https://r-spatial.github.io/stars/index.html) package. For example, we can
 visualize the `cases` variable across time:
 
-```{r, fig.height = 5}
+```{r, fig.height = 4}
 ggplot() +
     geom_stars(aes(fill = cases), data = stdata) +
     facet_wrap(~ time) +
     scale_fill_distiller(palette = "RdBu")
 ```
 
-You can also add additional variables to the `stars` object. For instance, let’s add a
+You can also add additional variables to the `stars` object. For instance, let's add a
 `population` variable:
 
 ```{r}
-stdata["population"] <- rep(rpois(6, 1000), each = 6)
+stdata["population"] <- rep(rpois(6, 1000), times = 5)
 stdata
 ```

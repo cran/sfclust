@@ -1,9 +1,9 @@
 ## ----setup, include = FALSE---------------------------------------------------
 knitr::opts_chunk$set(fig.align = "center", eval = TRUE)
-knitr::opts_chunk$set(fig.height = 7, fig.width = 8, dpi = 150, out.width = '100%')
+knitr::opts_chunk$set(fig.height = 6.5, fig.width = 7.5, dpi = 90, out.width = '100%')
 knitr::opts_chunk$set(comment = "#>")
 
-## ----warning=FALSE, include=TRUE----------------------------------------------
+## ----warning = FALSE, message = FALSE-----------------------------------------
 library(stars)
 library(ggplot2)
 
@@ -24,13 +24,13 @@ stdata <- st_as_stars(
 )
 stdata
 
-## ----fig.height = 5-----------------------------------------------------------
+## ----fig.height = 4-----------------------------------------------------------
 ggplot() +
     geom_stars(aes(fill = cases), data = stdata) +
     facet_wrap(~ time) +
     scale_fill_distiller(palette = "RdBu")
 
 ## -----------------------------------------------------------------------------
-stdata["population"] <- rep(rpois(6, 1000), each = 6)
+stdata["population"] <- rep(rpois(6, 1000), times = 5)
 stdata
 
