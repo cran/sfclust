@@ -12,7 +12,6 @@ library(sfclust)
 library(stars)
 library(ggplot2)
 library(dplyr)
-library(ggraph)
 
 ## -----------------------------------------------------------------------------
 data("stgaus")
@@ -36,43 +35,14 @@ stgaus |>
     theme(legend.position = "none")
 
 ## -----------------------------------------------------------------------------
-set.seed(123)
-initial_cluster <- genclust(stgaus, nclust = 20)
-names(initial_cluster)
-
-## ----fig.height = 2.7---------------------------------------------------------
-gg1 <- ggraph(initial_cluster$graph, layout = st_coordinates(st_centroid(st_geometry(stgaus)))) +
-    geom_edge_fan(linetype = 1, color = 2) +
-    geom_node_point(size = 1.5, color = 1) +
-    geom_sf(data = st_geometry(stgaus), fill = NA, color = 1, linewidth = 0.5) +
-    labs(subtitle = "(A)") +
-    theme_void()
-gg2 <- ggraph(initial_cluster$mst, layout = st_coordinates(st_centroid(st_geometry(stgaus)))) +
-    geom_edge_fan(linetype = 1, color = 2) +
-    geom_node_point(size = 1.5, color = 1) +
-    geom_sf(data = st_geometry(stgaus), fill = NA, color = 1, linewidth = 0.5) +
-    labs(subtitle = "(B)") +
-    theme_void()
-gg3 <- st_sf(st_geometry(stgaus), cluster = factor(initial_cluster$membership)) |>
-  ggplot() +
-    geom_sf(aes(fill = cluster), color = 1) +
-    labs(subtitle = "(C)") +
-    theme_void() +
-    theme(legend.position = "none")
-gg1 + gg2 + gg3 & theme(plot.margin = margin(0, 0, 0, 0))
-
-## ----echo = FALSE-------------------------------------------------------------
-if (save_figures) {
-  ggsave(file.path(path_figures, "stgaus-initial-cluster.pdf"), width = 10, height = 3.5,
-    device = cairo_pdf)
-}
+formula <- y ~ f(id_time, model = "rw1",
+  hyper = list(prec = list(prior = "normal", param = c(-2, 1))))
 
 ## ----eval = FALSE-------------------------------------------------------------
-# result0 <- sfclust(stgaus, graphdata = initial_cluster, logpen = -50,
-#   formula = y ~ f(id_time, model = "rw1",
-#                   hyper = list(prec = list(prior = "normal", param = c(-2, 1)))),
-#   niter = 50, burnin = 10, thin = 2, nmessage = 10
-# )
+# set.seed(123)
+# result0 <- sfclust(stgaus, nclust = 20, formula = formula, logpen = -50,
+#   niter = 50, burnin = 10, thin = 2, nmessage = 10,
+#   path_save = "stgaus-mcmc-initial.rds")
 # result0
 
 ## ----echo = FALSE-------------------------------------------------------------
@@ -83,7 +53,7 @@ result0
 plot(result0, which = 3)
 
 ## ----eval = FALSE-------------------------------------------------------------
-# result <- update(result0, niter = 1000)
+# result <- update(result0, niter = 1000, nsave = 500, path_save = "stgaus-mcmc.rds")
 # result
 
 ## ----echo = FALSE-------------------------------------------------------------
@@ -93,7 +63,7 @@ result
 ## ----fig.dpi = 72, fig.height = 6---------------------------------------------
 plot(result, which = 3)
 
-## -----------------------------------------------------------------------------
+## ----fig.height = 3.5---------------------------------------------------------
 gg1 <- plot(result0, which = 3) + labs(subtitle = "(A)")
 gg2 <- plot(result, which = 3) + labs(subtitle = "(B)")
 gg1 + gg2

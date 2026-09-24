@@ -1,6 +1,6 @@
 Package: sfclust
 Title: Bayesian Spatial Functional Clustering
-Version: 1.1.0
+Version: 1.1.1
 Authors@R: c(
     person(c("Erick", "A."), "Chacón-Montalván", ,"erick.chaconmontalvan@wur.nl", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0001-8068-1034")),
@@ -30,14 +30,14 @@ Depends: R (>= 4.1.0)
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 LazyData: true
-Config/Needs/website: rmarkdown, fda, maps
+Config/Needs/website: rmarkdown, fda, maps, pbs
 Config/roxygen2/version: 8.0.0
 NeedsCompilation: no
-Packaged: 2026-07-28 15:23:11 UTC; rstudio
+Packaged: 2026-09-24 09:10:26 UTC; rstudio
 Author: Erick A. Chacón-Montalván [aut, cre] (ORCID:
     <https://orcid.org/0000-0001-8068-1034>),
   Ruiman Zhong [aut] (ORCID: <https://orcid.org/0000-0002-4681-9199>),
   Paula Moraga [aut] (ORCID: <https://orcid.org/0000-0001-5266-0201>)
 Maintainer: Erick A. Chacón-Montalván <erick.chaconmontalvan@wur.nl>
 Repository: CRAN
-Date/Publication: 2026-07-28 22:40:03 UTC
+Date/Publication: 2026-09-24 10:30:02 UTC
